@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <title>阿曼我來救你了</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <style>
+    .container {
+      display: flex;
+    }
+    .calendar-container {
+      flex: 1;
+      margin-right: 20px;
+    }
+    .data-container {
+      flex: 0.9;
+      font-size: 12px; /* Set the desired font size here */
+    }
+    .calendar {
+      text-align: left;
+      margin: 20px 0;
+    }
+    .month-nav {
+      margin-bottom: 20px;
+    }
+    .month-nav button {
+      margin: 2px;
+    }
+    table {
+      width: 100%;
+      table-layout: fixed;
+    }
+    th, td {
+      text-align: center;
+      padding: 5px;
+      cursor: pointer;
+    }
+    .event-cell {
+      background-color: lightblue;
+    }
+    .selected-day {
+      border: 2px solid blue;
+      background-color: lightyellow;
+    }
+    .current-month {
+      background-color: orange;
+      color: white;
+    }
+    #loading {
+      display: none;
+      text-align: center;
+      font-size: 18px;
+      color: #007bff;
+    }
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="calendar-container">
+      <h1 class="my-4">2024公會開團時間表</h1>
+      <div class="month-nav" id="month-nav"></div>
+      <div class="calendar" id="calendar"></div>
+    </div>
+    <div class="data-container">
+      <h2 id="additional-data-title">請選擇日期</h2>
+      <div id="data"></div>
+      <div id="loading">Loading...</div> <!-- Loading indicator -->
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+      const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      const events = {
+        "2024-07-04": "日月鹿",
+        "2024-07-05": "普牛",
+        "2024-07-07": "普魅"
+      };
+      let selectedDayCell = null;  // To keep track of the selected day
+      let currentMonthButton = null;  // To keep track of the current month button
+      const today = new Date();
+      const currentMonth = today.getMonth(); // Get the current month (0-11)
+      const currentDate = today.getDate(); // Get the current date
+
+      function generateCalendar(month) {
+        const calendarDiv = document.getElementById('calendar');
+        calendarDiv.innerHTML = '';
+
+        const monthTitle = document.createElement('h2');
+        monthTitle.textContent = monthNames[month];
+        calendarDiv.appendChild(monthTitle);
+
+        const table = document.createElement('table');
+        const headerRow = document.createElement('tr');
+        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+          const th = document.createElement('th');
+          th.textContent = day;
+          headerRow.appendChild(th);
+        });
+        table.appendChild(headerRow);
+
+        const date = new Date(2024, month, 1);
+        let row = document.createElement('tr');
+        for (let i = 0; i < date.getDay(); i++) {
+          const emptyCell = document.createElement('td');
+          row.appendChild(emptyCell);
+        }
+
+        for (let day = 1; day <= daysInMonth[month]; day++) {
+          if (date.getDay() === 0 && day !== 1) {
+            table.appendChild(row);
+            row = document.createElement('tr');
+          }
+
+          const cell = document.createElement('td');
+          const cellDate = `2024-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          if (events[cellDate]) {
+            cell.textContent = `${day}(${events[cellDate]})`;
+            cell.classList.add('event-cell');
+          } else {
+            cell.textContent = day;
+          }
+          cell.dataset.date = cellDate;
+          cell.onclick = function() {
+            if (selectedDayCell) {
+              selectedDayCell.classList.remove('selected-day');
+            }
+            selectedDayCell = cell;
+            cell.classList.add('selected-day');
+
+            if (events[cellDate]) {
+              fetchSheetData(events[cellDate]);
+            } else {
+              document.getElementById('additional-data-title').innerHTML = '今天沒有團哦, 啾咪'; // Show custom message if no data
+              document.getElementById('data').innerHTML = ''; // Clear the data div
+            }
+          };
+          row.appendChild(cell);
+
+          if (month === today.getMonth() && day === today.getDate()) {
+            setTimeout(() => {
+              cell.click();
+            }, 100);
+          }
+
+          date.setDate(date.getDate() + 1);
+        }
+        table.appendChild(row);
+        calendarDiv.appendChild(table);
+      }
+
+      function generateMonthNav() {
+        const monthNavDiv = document.getElementById('month-nav');
+        monthNames.forEach((month, index) => {
+          const button = document.createElement('button');
+          button.className = 'btn btn-primary';
+          button.textContent = month.substring(0, 3);
+          button.onclick = function() {
+            generateCalendar(index);
+            document.getElementById('data').innerHTML = '';
+            document.getElementById('additional-data-title').innerHTML = '請選擇日期';
+            selectedDayCell = null;  // Reset selected day when switching months
+
+            if (currentMonthButton) {
+              currentMonthButton.classList.remove('current-month');
+            }
+            currentMonthButton = button;
+            button.classList.add('current-month');
+          };
+          monthNavDiv.appendChild(button);
+
+          // Highlight the current month button
+          if (index === currentMonth) {
+            currentMonthButton = button;
+            button.classList.add('current-month');
+          }
+        });
+      }
+
+      function fetchSheetData(sheetName) {
+        const loading = document.getElementById('loading');
+        const dataDiv = document.getElementById('data');
+        const additionalDataTitle = document.getElementById('additional-data-title');
+        dataDiv.style.display = 'none';
+        loading.style.display = 'block';
+
+        google.script.run.withSuccessHandler(function(result) {
+          displayData(result, sheetName);
+          loading.style.display = 'none';
+          dataDiv.style.display = 'block';
+        }).getSheetData(sheetName);
+      }
+
+      function displayData(result, sheetName) {
+        const dataDiv = document.getElementById('data');
+        const additionalDataTitle = document.getElementById('additional-data-title');
+        dataDiv.innerHTML = '';
+
+        const data = result.data;
+        const backgroundColors = result.backgroundColors;
+        const fontColors = result.fontColors;
+
+        if (data.length === 0) {
+          additionalDataTitle.textContent = '今天沒有團哦, 啾咪'; // Show custom message if no data
+          return;
+        }
+
+        additionalDataTitle.textContent = sheetName; // Show the sheet name if data is available
+
+        const table = document.createElement('table');
+        table.className = 'table table-striped';
+        data.forEach((row, rowIndex) => {
+          const tr = document.createElement('tr');
+          row.forEach((cell, cellIndex) => {
+            const td = document.createElement('td');
+            td.textContent = cell;
+            td.style.backgroundColor = backgroundColors[rowIndex][cellIndex];
+            td.style.color = fontColors[rowIndex][cellIndex];
+            tr.appendChild(td);
+          });
+          table.appendChild(tr);
+        });
+        dataDiv.appendChild(table);
+      }
+
+      generateMonthNav();
+      generateCalendar(currentMonth); // Initialize with the current month
+    });
+  </script>
+</body>
+</html>
+
