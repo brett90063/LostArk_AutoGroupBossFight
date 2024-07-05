@@ -69,8 +69,10 @@ class BossFightGrouper {
       var columnIndex = this.bossColumns[bossIndex];
       var allGroups = [];
 
-      // Add header row
-      allGroups.push(this.data[0].slice(0, 4).concat("平均裝分")); // 平均裝分 only calculate in damage classes
+      // Add header row (skip the index column by starting from column 1)
+      allGroups.push(this.data[0].slice(1, 1).concat("裝等", "玩家", "職業", "打手平均裝分", "")); // 平均裝分 only calculate in damage classes
+      var emptyRow = new Array(5).fill('');
+      allGroups.push(emptyRow);
 
       // Store players willing to join the boss fight
       var candidates = this.getCandidates(columnIndex);
@@ -90,25 +92,17 @@ class BossFightGrouper {
         var skipgroup = false;
 
         while (group.length < 8 && candidates.length > 0 && !skipgroup) {
-          // Logger.log('==========');
-          // Logger.log('Processing ' + group.length);
-          // Logger.log('current checkdup:' + checkdup.join(','));
           var current_front = 0;
           var current_end = candidates.length - 1;
           var breakcase = false;
-          // Alternate between highest and lowest candidates
           var candidate;
           if (group.length % 2 === 0) {
             candidate = candidates[current_front];
-            // Logger.log('finding ' + current_front + ' ' + candidate.join(','));
           } else {
             candidate = candidates[current_end];
-            // Logger.log('finding ' + current_end + ' ' + candidate.join(','));
           }
 
-          // Logger.log('current count ' + supportCount + ' ' + damageCount);
           if (supportCount < 2) {
-            // Logger.log('in support chain ' + candidate[3].trim());
             while (checkdup.includes(candidate[2]) || !this.isSupport(candidate)) {
               if (group.length % 2 === 0) {
                 current_front++;
@@ -117,7 +111,6 @@ class BossFightGrouper {
                   break;
                 }
                 candidate = candidates[current_front];
-                // Logger.log('finding ' + current_front + ' ' + candidate.join(','));
               } else {
                 current_end--;
                 if (current_end < 0) {
@@ -125,7 +118,6 @@ class BossFightGrouper {
                   break;
                 }
                 candidate = candidates[current_end];
-                // Logger.log('finding ' + current_end + ' ' + candidate.join(','));
               }
             }
             if (breakcase) {
@@ -143,9 +135,7 @@ class BossFightGrouper {
             group.push(candidate);
             checkdup.push(candidate[2]);
             supportCount++;
-            // Logger.log('Added to support ' + (breakcase ? '(break) ' : '') + supportCount + ' for ' + boss + ': ' + candidate[2] + ' ' + candidate[3] + ' ' + candidate[1] + ' ' + group.length);
           } else if (damageCount < 6) {
-            // Logger.log('in damage chain ' + candidate[3].trim());
             while (checkdup.includes(candidate[2]) || this.isSupport(candidate)) {
               if (group.length % 2 === 0) {
                 current_front++;
@@ -154,7 +144,6 @@ class BossFightGrouper {
                   break;
                 }
                 candidate = candidates[current_front];
-                // Logger.log('finding ' + current_front + ' ' + candidate.join(','));
               } else {
                 current_end--;
                 if (current_end < 0) {
@@ -162,7 +151,6 @@ class BossFightGrouper {
                   break;
                 }
                 candidate = candidates[current_end];
-                // Logger.log('finding ' + current_end + ' ' + candidate.join(','));
               }
             }
             if (breakcase) {
@@ -177,7 +165,6 @@ class BossFightGrouper {
             group.push(candidate);
             checkdup.push(candidate[2]);
             damageCount++;
-            // Logger.log('Added to damage ' + (breakcase ? '(break) ' : '') + damageCount + ' for ' + boss + ': ' + candidate[2] + ' ' + candidate[3] + ' ' + candidate[1] + ' ' + group.length);
           }
         }
         if(skipgroup){
@@ -195,7 +182,7 @@ class BossFightGrouper {
         groupcount++;
         if (group.length === 8) {
           var letter = String.fromCharCode(65 + (groupcount - 1)); // Convert groupcount to corresponding letter (A, B, C, ...)
-          var emptyRow = ['隊伍', letter, '', '', ''];
+          var emptyRow = ['隊伍' + letter, '', '', '', ''];
           allGroups.push(emptyRow);
         }
 
@@ -213,12 +200,13 @@ class BossFightGrouper {
 
           var dpsAverage = dpsSum / dpsCount;
           for (var i = 0; i < group.length; i++) {
-            var row = group[i].slice(0, 4);
+            var row = group[i].slice(1, 4); // Skip the index column
             if (i === group.length - 1) {
               row.push(dpsAverage.toFixed(2));
             } else {
               row.push('');
             }
+            row.push("");
             allGroups.push(row);
           }
 
@@ -259,7 +247,7 @@ class BossFightGrouper {
 
     Logger.log('Marking the special color...Please wait.');
     for (var rowIndex = 2; rowIndex <= allGroups.length; rowIndex++) {
-      var profession = groupSheet.getRange(rowIndex, 4).getValue().trim();
+      var profession = groupSheet.getRange(rowIndex, 3).getValue().trim(); // Update to 3rd column after skipping index
       var columnValues = [
         groupSheet.getRange(rowIndex, 1).getValue(),
         groupSheet.getRange(rowIndex, 2).getValue(),
@@ -269,16 +257,15 @@ class BossFightGrouper {
       ];
 
       if (this.supportClasses.includes(profession)) {
-        groupSheet.getRange(rowIndex, 4).setBackground("yellow");
+        groupSheet.getRange(rowIndex, 3).setFontColor("red"); // Update to 3rd column after skipping index
       } else if (['煞', '氣', 'a', '孤', '兒'].some(value => columnValues.includes(value))) {
         groupSheet.getRange(rowIndex, 1).setBackground("#D3D3D3D3");
         groupSheet.getRange(rowIndex, 2).setBackground("#D3D3D3D3");
         groupSheet.getRange(rowIndex, 3).setBackground("#D3D3D3D3");
         groupSheet.getRange(rowIndex, 4).setBackground("#D3D3D3D3");
         groupSheet.getRange(rowIndex, 5).setBackground("#D3D3D3D3");
-      } else if (["隊伍"].some(value => columnValues.includes(value))) {
+      } else if (typeof columnValues[0] === 'string' && columnValues[0].indexOf("隊伍") === 0) {
         groupSheet.getRange(rowIndex, 1).setBackground("#D3D3D3D3");
-        groupSheet.getRange(rowIndex, 2).setBackground("#D3D3D3D3");
       }
     }
 
