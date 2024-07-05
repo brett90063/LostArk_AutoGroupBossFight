@@ -20,10 +20,18 @@
  * - Initial release.
  * 
  * Note: Please replace the file ID and sheet name with your own.
+ *
+ * Game: Lost Ark
+ * Server: 阿曼
+ * Dedicated to the guild 阿曼我來就你了.
+ * 
+ * The row of this code is by:
+ * Index, 裝分, 玩家, 職業, 順位, 日月鹿, 普牛, 普魅
+ * (you can generate by pivot table)
  */
 function autoGroupBossFight() {
   var fileId = '1-pfdTSkJlukMOgrHm0BmCLNk1tdKPA-rb6CZUhJIAO0'; // !!! Replace with your file ID !!!
-  var sheetname = '班表'; // !!! Replace with your sheet Name (must include pivot table) !!!
+  var sheetname = '班表';                                       // !!! Replace with your sheet Name !!!
 
   try {
     Logger.log('Trying to open file with ID: ' + fileId);
@@ -62,7 +70,7 @@ class BossFightGrouper {
       var allGroups = [];
 
       // Add header row
-      allGroups.push(this.data[0].slice(0, 4).concat("平均裝分"));
+      allGroups.push(this.data[0].slice(0, 4).concat("平均裝分")); // 平均裝分 only calculate in damage classes
 
       // Store players willing to join the boss fight
       var candidates = this.getCandidates(columnIndex);
@@ -101,7 +109,7 @@ class BossFightGrouper {
           // Logger.log('current count ' + supportCount + ' ' + damageCount);
           if (supportCount < 2) {
             // Logger.log('in support chain ' + candidate[3].trim());
-            while (checkdup.includes(candidate[2]) || !this.supportClasses.includes(candidate[3].trim())) {
+            while (checkdup.includes(candidate[2]) || !this.isSupport(candidate)) {
               if (group.length % 2 === 0) {
                 current_front++;
                 if (current_front >= candidates.length) {
@@ -138,7 +146,7 @@ class BossFightGrouper {
             // Logger.log('Added to support ' + (breakcase ? '(break) ' : '') + supportCount + ' for ' + boss + ': ' + candidate[2] + ' ' + candidate[3] + ' ' + candidate[1] + ' ' + group.length);
           } else if (damageCount < 6) {
             // Logger.log('in damage chain ' + candidate[3].trim());
-            while (checkdup.includes(candidate[2]) || this.supportClasses.includes(candidate[3].trim())) {
+            while (checkdup.includes(candidate[2]) || this.isSupport(candidate)) {
               if (group.length % 2 === 0) {
                 current_front++;
                 if (current_front >= candidates.length) {
@@ -160,11 +168,6 @@ class BossFightGrouper {
             if (breakcase) {
               skipgroup = true;
               break;
-              if (group.length % 2 === 0) {
-                current_front--;
-              } else {
-                current_end++;
-              }
             }
             if (group.length % 2 === 0) {
               candidates.splice(current_front, 1);
@@ -178,8 +181,6 @@ class BossFightGrouper {
           }
         }
         if(skipgroup){
-          // Logger.log('rest candidates ' + candidates.length);
-          // Logger.log('current group ' + group.length);
           if (group.length + candidates.length <= 8){
             while(candidates.length > 0){
               group.push(candidates.shift());
@@ -204,8 +205,7 @@ class BossFightGrouper {
           var dpsCount = 0;
 
           for (var i = 0; i < group.length; i++) {
-            var profession = group[i][3].trim();
-            if (!this.supportClasses.includes(profession)) {
+            if (!this.isSupport(group[i])) {
               dpsSum += parseInt(group[i][1], 10); // Assuming 裝分 is in the 2nd column, index 1
               dpsCount++;
             }
@@ -237,7 +237,6 @@ class BossFightGrouper {
   getCandidates(columnIndex) {
     var candidates = [];
     for (var i = 2; i < this.data.length; i++) {
-      var profession = this.data[i][3].trim();
       var willingToJoin = this.data[i][columnIndex] === 'Y';
       if (willingToJoin) {
         candidates.push(this.data[i]);
@@ -285,5 +284,8 @@ class BossFightGrouper {
 
     Logger.log('Group result for ' + boss + ' written, centered, and profession highlighted successfully');
   }
-}
 
+  isSupport(candidate) {
+    return this.supportClasses.includes(candidate[3].trim());
+  }
+}
