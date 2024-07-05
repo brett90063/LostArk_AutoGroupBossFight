@@ -234,7 +234,7 @@ class BossFightGrouper {
   }
 
   writeResultsToSheet(boss, allGroups) {
-    var groupSheetName = "result" + boss;
+    var groupSheetName = boss;
     var groupSheet = this.spreadsheet.getSheetByName(groupSheetName);
     if (!groupSheet) {
       groupSheet = this.spreadsheet.insertSheet(groupSheetName);
