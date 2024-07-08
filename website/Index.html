@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <base target="_top">
+  <meta charset="UTF-8">
   <title>阿曼我來救你了</title>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
   <style>
@@ -11,6 +11,7 @@
     .calendar-container {
       flex: 1;
       margin-right: 20px;
+      text-align: center;
     }
     .data-container {
       flex: 0.9;
@@ -57,14 +58,84 @@
       justify-content: space-between;
       align-items: center;
     }
+    body {
+      font-family: Arial, sans-serif;
+    }
+    #sequenceContainer {
+      font-size: 24px;
+      margin: 20px 0;
+    }
+    .keyBox {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      border: 2px solid #000;
+      border-radius: 5px;
+      background-color: #fff;
+      margin: 0 5px;
+      font-size: 24px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .highlight {
+      background-color: yellow;
+    }
+    .failedMessage {
+      font-size: 30px;
+      width: 150px; /* Adjust width as needed */
+      height: 40px; /* Adjust height to ensure proper centering */
+      line-height: 40px; /* Set line-height equal to height for vertical centering */
+      border: 2px solid #000;
+      border-radius: 5px;
+      background-color: #ff0000;
+      margin: 0 auto; /* Center horizontally */
+      text-align: center;
+      display: inline-block;
+    }
+    #progressBar {
+      width: 300px;
+      height: 10px;
+      background-color: #ddd;
+      margin: 20px auto;
+    }
+    #progress {
+      height: 100%;
+      background-color: #76c7c0;
+      width: 100%;
+      transition: width 0.1s;
+    }
+    #controlButtons {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    #startButton, #stopButton {
+      margin: 0 10px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="calendar-container">
-      <h1 class="my-4">2024公會開團時間表</h1>
+      <h1 class="my-4">阿曼我來救你了 開團時間表</h1>
       <div class="month-nav" id="month-nav"></div>
       <div class="calendar" id="calendar"></div>
+      
+      <!-- Typing Practice Game -->
+      <h1>媚魔乖乖練習嘿</h1>
+      <p></p>
+      <div id="sequenceContainer"></div>
+      <div id="progressBar">
+        <div id="progress"></div>
+      </div>
+      <p id="result"></p>
+      <p>Successes: <span id="successCount">0</span></p>
+      <p>Failures: <span id="failureCount">0</span></p>
+      <div id="controlButtons">
+        <button id="startButton" class="btn btn-primary">Start</button>
+        <button id="stopButton" class="btn btn-danger" style="display: none;">Stop</button>
+      </div>
     </div>
     <div class="data-container">
       <h2 id="additional-data-title">請選擇日期</h2>
@@ -74,6 +145,7 @@
   </div>
 
   <script>
+    // Calendar Script
     document.addEventListener("DOMContentLoaded", function() {
       const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
       const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
@@ -231,6 +303,126 @@
 
       generateMonthNav();
       generateCalendar(currentMonth); // Initialize with the current month
+    });
+
+    // Typing Practice Game Script
+    const KEYS = ['Q', 'W', 'E', 'A', 'S', 'D'];
+    const SEQUENCE_LENGTH = 7;
+    const TIME_LIMIT = 4000; // 4 seconds in milliseconds
+    let sequence = '';
+    let currentInputIndex = 0;
+    let startTime;
+    let interval;
+    let isRunning = false;
+    let successCount = 0;
+    let failureCount = 0;
+
+    function generateSequence() {
+      sequence = '';
+      const sequenceContainer = document.getElementById('sequenceContainer');
+      sequenceContainer.innerHTML = '';
+      for (let i = 0; i < SEQUENCE_LENGTH; i++) {
+        const key = KEYS[Math.floor(Math.random() * KEYS.length)];
+        sequence += key;
+        const keyBox = document.createElement('div');
+        keyBox.className = 'keyBox';
+        keyBox.id = 'key' + i;
+        keyBox.innerText = key;
+        sequenceContainer.appendChild(keyBox);
+      }
+      document.getElementById('result').innerText = '';
+      document.addEventListener('keydown', handleKeyPress);
+      currentInputIndex = 0;
+      if (!isRunning) {
+        startTimer();
+      }
+    }
+
+    function startTimer() {
+      const progressBar = document.getElementById('progress');
+      progressBar.style.width = '100%';
+      startTime = new Date().getTime();
+
+      interval = setInterval(() => {
+        const currentTime = new Date().getTime();
+        const timeElapsed = currentTime - startTime;
+        const timeRemaining = TIME_LIMIT - timeElapsed;
+
+        if (timeRemaining <= 0) {
+          clearInterval(interval);
+          isRunning = false;
+          failureCount++;
+          document.getElementById('failureCount').innerText = failureCount;
+          document.getElementById('result').innerText = 'Time is up! Try again.';
+          setTimeout(() => {
+            generateSequence();
+          }, 1000);
+        } else {
+          const percentage = (timeRemaining / TIME_LIMIT) * 100;
+          progressBar.style.width = percentage + '%';
+        }
+      }, 100);
+      isRunning = true;
+    }
+
+    function handleKeyPress(event) {
+      const keyPressed = event.key.toUpperCase();
+      if (KEYS.includes(keyPressed)) {
+        const currentKeyBox = document.getElementById('key' + currentInputIndex);
+        console.log('Current Input:', keyPressed, 'Expected Key:', sequence[currentInputIndex]); // Log current input and current key
+        if (keyPressed === sequence[currentInputIndex]) {
+          currentKeyBox.classList.add('highlight'); // Highlight the correctly typed key
+          currentInputIndex++;
+          if (currentInputIndex === SEQUENCE_LENGTH) {
+            clearInterval(interval);
+            isRunning = false;
+            successCount++;
+            document.getElementById('successCount').innerText = successCount;
+            document.getElementById('result').innerText = 'Correct! Well done!';
+            document.removeEventListener('keydown', handleKeyPress);
+            setTimeout(() => {
+              generateSequence();
+            }, 1000);
+          }
+        } else {
+          replaceSequenceWithFailed();
+          setTimeout(() => {
+            generateSequence();
+          }, 500);
+        }
+      }
+    }
+
+    function replaceSequenceWithFailed() {
+      const sequenceContainer = document.getElementById('sequenceContainer');
+      sequenceContainer.innerHTML = '';
+      const failedBox = document.createElement('div');
+      failedBox.className = 'failedMessage';
+      failedBox.innerText = 'Failure';
+      sequenceContainer.appendChild(failedBox);
+      document.getElementById('result').innerText = 'Failed! Generating new sequence.';
+      document.removeEventListener('keydown', handleKeyPress);
+    }
+
+    function resetGame() {
+      document.getElementById('sequenceContainer').innerHTML = '';
+      document.getElementById('progress').style.width = '0%';
+      document.getElementById('result').innerText = '';
+      document.getElementById('startButton').style.display = 'block';
+      document.getElementById('stopButton').style.display = 'none';
+      clearInterval(interval);
+      document.removeEventListener('keydown', handleKeyPress);
+      isRunning = false;
+    }
+
+    document.getElementById('startButton').addEventListener('click', function() {
+      document.getElementById('startButton').style.display = 'none';
+      document.getElementById('stopButton').style.display = 'block';
+      generateSequence();
+    });
+
+    document.getElementById('stopButton').addEventListener('click', function() {
+      resetGame();
     });
   </script>
 </body>
